@@ -1,44 +1,47 @@
 ---
-- name: update apt cache
-  apt:
-    update_cache: yes
+- name: Update apt cache
+  ansible.builtin.apt:
+    update_cache: true
   when: ansible_os_family == 'Debian'
 
-- name: install the required dependencies (Debian)
-  apt:
+- name: Install the required dependencies (Debian)
+  ansible.builtin.apt:
     name:
-    - openssl
-    - python-boto
-    - python-openssl
+      - openssl
+      - python-boto
+      - python-openssl
     state: present
   when: ansible_os_family == 'Debian'
 
-- name: install the required dependencies (Red Hat) (Requires EPEL)
-  yum:
+- name: Install the required dependencies (Red Hat) (Requires EPEL)
+  ansible.builtin.dnf:
     name:
-    - openssl
-    - python-pip
+      - openssl
+      - python-pip
     state: present
   when: ansible_os_family == 'RedHat'
 
-- name: install the required dependencies (FreeBSD)
-  pkgng:
+- name: Install the required dependencies (FreeBSD)
+  community.general.pkgng:
     name:
-    - openssl
-    - "py{{ ansible_python.version.major }}{{ ansible_python.version.minor }}-boto3"
-    - "py{{ ansible_python.version.major }}{{ ansible_python.version.minor }}-openssl"
+      - openssl
+      - "py{{ ansible_python.version.major }}{{ ansible_python.version.minor }}-boto3"
+      - "py{{ ansible_python.version.major }}{{ ansible_python.version.minor }}-openssl"
     state: present
   when: ansible_os_family == 'FreeBSD'
 
-- include: virtualenv.yml
+- name: Running VirtualEnv
+  ansible.builtin.include_tasks:
+    file: virtualenv.yml
   when: ansible_os_family == 'RedHat'
 
-- name: get the public IP address
-  ipify_facts:
+- name: Get the public IP address
+  community.general.ipify_facts:
   register: public_ip
+  when: use_public_ip |bool
 
-- name: update the DNS record(s)
-  route53:
+- name: Update the DNS record(s)
+  amazon.aws.route53:
     state: present
     zone: "{{ item.zone }}"
     record: "{{ item.record }}"
@@ -47,6 +50,22 @@
     value: "{{ public_ip.ansible_facts.ipify_public_ip }}"
     aws_access_key: "{{ update_ip_r53_aws_access_key }}"
     aws_secret_key: "{{ update_ip_r53_aws_secret_key }}"
-    wait: "{{ item.wait | default('yes') }}"
-    overwrite: yes
+    wait: "{{ item.wait | default('true') }}"
+    overwrite: true
   with_items: "{{ update_ip_r53_records }}"
+  when: not use_public_ip | bool
+
+- name: Update the DNS record(s)
+  amazon.aws.route53:
+    state: present
+    zone: "{{ item.zone }}"
+    record: "{{ item.record }}"
+    type: "{{ item.type | default('A') }}"
+    ttl: "{{ item.ttl | default(omit) }}"
+    value: "{{ private_ip }}"
+    aws_access_key: "{{ update_ip_r53_aws_access_key }}"
+    aws_secret_key: "{{ update_ip_r53_aws_secret_key }}"
+    wait: "{{ item.wait | default('true') }}"
+    overwrite: true
+  with_items: "{{ update_ip_r53_records }}"
+  when:  use_public_ip | bool

@@ -10,9 +10,11 @@ Python virtualenv instead because the packaged version of `pyOpenSSL` is not rec
 If you are not using this role on Debian/Ubuntu, CentOS/Red Hat,
 `openssl`, `boto`, and `pyOpenSSL` must be installed manually before using this role.
 
+[![ansible-lint](https://github.com/tosin2013/ansible-role-update-ip-route53/actions/workflows/ansible-lint.yml/badge.svg)](https://github.com/tosin2013/ansible-role-update-ip-route53/actions/workflows/ansible-lint.yml)
+
 ## Requirements
 
-Ansible 2.4+ is required for this role. This role also must be run by root or
+Ansible 2.9+ is required for this role. This role also must be run by root or
 through sudo/become.
 
 ## Role Variables
@@ -30,14 +32,16 @@ through sudo/become.
 
 ## Example Playbook
 
+**When using public IP address**
 ```yaml
 - name: Update host.example.com and host2.example.com
   hosts: host
   become: yes
 
   vars:
-  - ler53_aws_access_key: SomeAccessKey
-  - ler53_aws_secret_key: SomeSecretKey
+  - update_ip_r53_aws_access_key: SomeAccessKey
+  - update_ip_r53_aws_secret_key: SomeSecretKey
+  - use_public_ip: true
   - update_ip_r53_records:
     - zone: example.com
       record: host.example.com
@@ -45,7 +49,28 @@ through sudo/become.
       record: host2.example.com
 
   roles:
-  - mprahl.update-ip-route53
+  - ansible_role_update_ip_route53
+```
+
+**When using private ip address**
+```yaml
+- name: Update host.example.com and host2.example.com
+  hosts: host
+  become: yes
+
+  vars:
+  - update_ip_r53_aws_access_key: SomeAccessKey
+  - update_ip_r53_aws_secret_key: SomeSecretKey
+  - use_public_ip: false
+  - private_ip: "192.168.1.10"
+  - update_ip_r53_records:
+    - zone: example.com
+      record: host.example.com
+    - zone: example.com
+      record: host2.example.com
+
+  roles:
+  - ansible_role_update_ip_route53
 ```
 
 ## License
