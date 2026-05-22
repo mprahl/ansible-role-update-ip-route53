@@ -5,9 +5,9 @@ public IP address.
 The role supports Debian/Ubuntu and Red Hat family hosts. FreeBSD support has
 been removed.
 
-On supported hosts, the role creates a Python virtualenv, installs `boto3` and
-`botocore` there, and uses that interpreter for the AWS tasks. Unsupported
-platforms fail fast with a clear error.
+On supported hosts, the role expects `boto3` and `botocore` to already be
+installed for the Python interpreter Ansible uses on the managed host.
+Unsupported platforms fail fast with a clear error.
 
 ## Requirements
 
@@ -18,7 +18,8 @@ available on the control node:
 ansible-galaxy collection install amazon.aws community.general
 ```
 
-This role must be run as root or through `become`.
+The managed host must already have Python with `boto3` and `botocore`
+available to Ansible.
 
 ## Role Variables
 
@@ -29,16 +30,11 @@ This role must be run as root or through `become`.
     should be updated on. All the accepted keys map to the `amazon.aws.route53` parameters. The required keys are `zone` and
     `record`. The optional keys are `type` (defaults to `A`) and `wait`.
 
-#### Optional Variables
-* **update_ip_r53_virtualenv_dir** - the path to create the Python virtualenv to install the Python dependencies on
-    supported hosts.
-
 ## Example Playbook
 
 ```yaml
 - name: Update host.example.com and host2.example.com
   hosts: host
-  become: true
 
   vars:
     update_ip_r53_aws_access_key: SomeAccessKey

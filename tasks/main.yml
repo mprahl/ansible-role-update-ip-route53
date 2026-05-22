@@ -2,13 +2,28 @@
 - name: Fail on unsupported platforms
   ansible.builtin.assert:
     that:
-    - ansible_os_family in ['Debian', 'RedHat']
+    - ansible_facts["os_family"] in ['Debian', 'RedHat']
     fail_msg: >-
       This role supports Debian/Ubuntu and Red Hat family hosts only.
-      Found ansible_os_family={{ ansible_os_family }}.
+      Found ansible_os_family={{ ansible_facts["os_family"] }}.
 
 - name: Prepare Python dependencies
-  ansible.builtin.include_tasks: virtualenv.yml
+  ansible.builtin.command:
+    argv:
+    - "{{ ansible_facts['python']['executable'] }}"
+    - -c
+    - "import boto3, botocore"
+  register: update_ip_r53_python_sdk_check
+  changed_when: false
+  failed_when: false
+
+- name: Fail when Python AWS SDK prerequisites are missing
+  ansible.builtin.assert:
+    that:
+    - update_ip_r53_python_sdk_check.rc == 0
+    fail_msg: >-
+      boto3 and botocore must already be installed for
+      {{ ansible_facts["python"]["executable"] }} on the managed host.
 
 - name: Get the public IP address
   community.general.ipify_facts:
@@ -21,7 +36,7 @@
     type: "{{ item.type | default('A') }}"
     ttl: "{{ item.ttl | default(omit) }}"
     value:
-    - "{{ ansible_facts.ipify_public_ip }}"
+    - "{{ ansible_facts['ipify_public_ip'] }}"
     access_key: "{{ update_ip_r53_aws_access_key }}"
     secret_key: "{{ update_ip_r53_aws_secret_key }}"
     wait: "{{ item.wait | default(true) | bool }}"
